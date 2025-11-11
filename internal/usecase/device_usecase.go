@@ -114,7 +114,11 @@ func (u *DeviceUsecase) UpdateDeviceStatus() {
 			u.Repo.CreateLog(&log)
 		}
 		device.LastOnline = time.Now()
-		err := u.Repo.UpdateDevice(&device)
+		// Only update status and lastonline, not other fields
+		err := u.Repo.DB.Model(&domain.Device{}).Where("id = ?", device.ID).Updates(map[string]interface{}{
+			"status":     device.Status,
+			"lastonline": time.Now(),
+		}).Error
 		if err != nil {
 			log.Printf("Error updating device %s: %v", device.Name, err)
 		}
@@ -202,4 +206,48 @@ func (u *DeviceUsecase) GetDeviceByIDWithTypes(id uint) (*domain.Device, error) 
 
 func (u *DeviceUsecase) DeleteDevice(id uint) error {
 	return u.Repo.DeleteDevice(id)
+}
+
+func (u *DeviceUsecase) GetDevicesByType(typeID uint) ([]domain.Device, error) {
+	var deviceIDs []uint
+	var maps []domain.DeviceTypeMap
+	if err := u.TypeMapRepo.DB.Where("type_id = ?", typeID).Find(&maps).Error; err != nil {
+		return nil, err
+	}
+	for _, m := range maps {
+		deviceIDs = append(deviceIDs, m.DeviceID)
+	}
+	var devices []domain.Device
+	if err := u.Repo.DB.Where("id IN ?", deviceIDs).Find(&devices).Error; err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		types, _ := u.TypeMapRepo.GetDeviceTypes(devices[i].ID)
+		devices[i].Types = types
+	}
+	return devices, nil
+}
+
+func (u *DeviceUsecase) GetDevicesByTypeMulti(typeIDs []uint) ([]domain.Device, error) {
+	var deviceIDs []uint
+	var maps []domain.DeviceTypeMap
+	if err := u.TypeMapRepo.DB.Where("type_id IN ?", typeIDs).Find(&maps).Error; err != nil {
+		return nil, err
+	}
+	idsMap := make(map[uint]struct{})
+	for _, m := range maps {
+		idsMap[m.DeviceID] = struct{}{}
+	}
+	for id := range idsMap {
+		deviceIDs = append(deviceIDs, id)
+	}
+	var devices []domain.Device
+	if err := u.Repo.DB.Where("id IN ?", deviceIDs).Find(&devices).Error; err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		types, _ := u.TypeMapRepo.GetDeviceTypes(devices[i].ID)
+		devices[i].Types = types
+	}
+	return devices, nil
 }

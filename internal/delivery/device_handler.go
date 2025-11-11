@@ -165,3 +165,45 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})
 }
+
+func (h *DeviceHandler) GetDevicesByType(c *gin.Context) {
+	typeIDStr := c.Query("type_id")
+	if typeIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type_id query param is required"})
+		return
+	}
+	typeID, err := strconv.ParseUint(typeIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid type_id"})
+		return
+	}
+	devices, err := h.Usecase.GetDevicesByType(uint(typeID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, devices)
+}
+
+func (h *DeviceHandler) GetDevicesByTypeMulti(c *gin.Context) {
+	typeIDsStr := c.QueryArray("type_ids")
+	if len(typeIDsStr) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type_ids query param is required"})
+		return
+	}
+	var typeIDs []uint
+	for _, s := range typeIDsStr {
+		id, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid type_id: " + s})
+			return
+		}
+		typeIDs = append(typeIDs, uint(id))
+	}
+	devices, err := h.Usecase.GetDevicesByTypeMulti(typeIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, devices)
+}

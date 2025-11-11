@@ -55,6 +55,9 @@ func main() {
 	r.GET("/devices_types/:id", deviceTypeHandler.GetDeviceTypeByID)
 	r.DELETE("/devices_types/:id", deviceTypeHandler.DeleteDeviceType)
 
+	r.GET("/devices/by-type", deviceHandler.GetDevicesByType)
+	r.GET("/devices/by-types", deviceHandler.GetDevicesByTypeMulti)
+
 	// Periodically check device statuses
 	go func() {
 		log.Println("Starting device status update...")
