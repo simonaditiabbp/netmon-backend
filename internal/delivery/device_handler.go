@@ -18,7 +18,7 @@ func NewDeviceHandler(usecase *usecase.DeviceUsecase) *DeviceHandler {
 }
 
 func (h *DeviceHandler) GetAllDevices(c *gin.Context) {
-	devices, err := h.Usecase.GetAllDevices()
+	devices, err := h.Usecase.GetAllDevicesWithTypes()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -92,7 +92,7 @@ func (h *DeviceHandler) InsertDevice(c *gin.Context) {
 		return
 	}
 
-	if err := h.Usecase.InsertDevice(&device); err != nil {
+	if err := h.Usecase.InsertDeviceWithTypes(&device, device.TypeIDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -108,7 +108,6 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
 		return
 	}
 
-	// Convert id from string to uint
 	if idUint, err := strconv.ParseUint(id, 10, 32); err == nil {
 		device.ID = uint(idUint)
 	} else {
@@ -116,7 +115,7 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
 		return
 	}
 
-	if err := h.Usecase.UpdateDevice(&device); err != nil {
+	if err := h.Usecase.UpdateDeviceWithTypes(&device, device.TypeIDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -131,14 +130,13 @@ func (h *DeviceHandler) GetDeviceByID(c *gin.Context) {
 		return
 	}
 
-	// Convert id from string to uint
 	idUint, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
 		return
 	}
 
-	device, err := h.Usecase.GetDeviceByID(uint(idUint))
+	device, err := h.Usecase.GetDeviceByIDWithTypes(uint(idUint))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

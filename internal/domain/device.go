@@ -14,4 +14,6 @@ type Device struct {
 	CreatedBy  string
 	UpdatedAt  time.Time `gorm:"autoUpdateTime"`
 	UpdatedBy  string
+	TypeIDs    []uint       `json:"type_ids" gorm:"-"` // for insert/update
+	Types      []DeviceType `json:"types" gorm:"-"`    // for response
 }

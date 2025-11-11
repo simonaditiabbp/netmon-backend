@@ -17,12 +17,16 @@ import (
 
 type DeviceUsecase struct {
 	Repo             *repository.DeviceRepository
+	TypeMapRepo      *repository.DeviceTypeMapRepository
+	TypeRepo         *repository.DeviceTypeRepository
 	BroadcastChannel chan gin.H
 }
 
-func NewDeviceUsecase(repo *repository.DeviceRepository) *DeviceUsecase {
+func NewDeviceUsecase(repo *repository.DeviceRepository, typeMapRepo *repository.DeviceTypeMapRepository, typeRepo *repository.DeviceTypeRepository) *DeviceUsecase {
 	return &DeviceUsecase{
 		Repo:             repo,
+		TypeMapRepo:      typeMapRepo,
+		TypeRepo:         typeRepo,
 		BroadcastChannel: make(chan gin.H, 30), // Initialize buffered channel
 	}
 }
@@ -31,12 +35,38 @@ func (u *DeviceUsecase) GetAllDevices() ([]domain.Device, error) {
 	return u.Repo.GetAllDevices()
 }
 
+func (u *DeviceUsecase) GetAllDevicesWithTypes() ([]domain.Device, error) {
+	devices, err := u.Repo.GetAllDevices()
+	if err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		types, _ := u.TypeMapRepo.GetDeviceTypes(devices[i].ID)
+		devices[i].Types = types
+	}
+	return devices, nil
+}
+
 func (u *DeviceUsecase) InsertDevice(device *domain.Device) error {
 	return u.Repo.InsertDevice(device)
 }
 
+func (u *DeviceUsecase) InsertDeviceWithTypes(device *domain.Device, typeIDs []uint) error {
+	if err := u.Repo.InsertDevice(device); err != nil {
+		return err
+	}
+	return u.TypeMapRepo.AddDeviceTypes(device.ID, typeIDs)
+}
+
 func (u *DeviceUsecase) UpdateDevice(device *domain.Device) error {
 	return u.Repo.UpdateDevice(device)
+}
+
+func (u *DeviceUsecase) UpdateDeviceWithTypes(device *domain.Device, typeIDs []uint) error {
+	if err := u.Repo.UpdateDevice(device); err != nil {
+		return err
+	}
+	return u.TypeMapRepo.UpdateDeviceTypes(device.ID, typeIDs)
 }
 
 func (u *DeviceUsecase) UpdateDeviceStatus() {
@@ -158,6 +188,16 @@ func (u *DeviceUsecase) BroadcastDevices() {
 
 func (u *DeviceUsecase) GetDeviceByID(id uint) (*domain.Device, error) {
 	return u.Repo.GetDeviceByID(id)
+}
+
+func (u *DeviceUsecase) GetDeviceByIDWithTypes(id uint) (*domain.Device, error) {
+	device, err := u.Repo.GetDeviceByID(id)
+	if err != nil {
+		return nil, err
+	}
+	types, _ := u.TypeMapRepo.GetDeviceTypes(device.ID)
+	device.Types = types
+	return device, nil
 }
 
 func (u *DeviceUsecase) DeleteDevice(id uint) error {

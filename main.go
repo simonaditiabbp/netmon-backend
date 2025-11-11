@@ -16,10 +16,15 @@ func main() {
 	// Initialize database connection
 	database := db.InitDB()
 
-	// Repository, Usecase, and Handler initialization
-	repo := repository.NewDeviceRepository(database)
-	usecase := usecase.NewDeviceUsecase(repo)
-	handler := delivery.NewDeviceHandler(usecase)
+	deviceRepo := repository.NewDeviceRepository(database)
+	deviceTypeRepo := repository.NewDeviceTypeRepository(database)
+	deviceTypeMapRepo := repository.NewDeviceTypeMapRepository(database)
+
+	deviceUsecase := usecase.NewDeviceUsecase(deviceRepo, deviceTypeMapRepo, deviceTypeRepo)
+	deviceTypeUsecase := usecase.NewDeviceTypeUsecase(deviceTypeRepo)
+
+	deviceHandler := delivery.NewDeviceHandler(deviceUsecase)
+	deviceTypeHandler := delivery.NewDeviceTypeHandler(deviceTypeUsecase)
 
 	// Gin router setup
 	r := gin.Default()
@@ -36,19 +41,25 @@ func main() {
 		c.Next()
 	})
 
-	r.GET("/devices", handler.GetAllDevices)
-	r.GET("/sse", handler.SSE)
-	r.GET("/live", handler.GetAllLiveDevices) // without sse
-	r.POST("/devices", handler.InsertDevice)
-	r.PUT("/devices/:id", handler.UpdateDevice)
-	r.GET("/devices/:id", handler.GetDeviceByID)
-	r.DELETE("/devices/:id", handler.DeleteDevice)
+	r.GET("/devices", deviceHandler.GetAllDevices)
+	r.GET("/sse", deviceHandler.SSE)
+	r.GET("/live", deviceHandler.GetAllLiveDevices) // without sse
+	r.POST("/devices", deviceHandler.InsertDevice)
+	r.PUT("/devices/:id", deviceHandler.UpdateDevice)
+	r.GET("/devices/:id", deviceHandler.GetDeviceByID)
+	r.DELETE("/devices/:id", deviceHandler.DeleteDevice)
+
+	r.POST("/devices_types", deviceTypeHandler.CreateDeviceType)
+	r.PUT("/devices_types/:id", deviceTypeHandler.UpdateDeviceType)
+	r.GET("/devices_types", deviceTypeHandler.GetAllDeviceTypes)
+	r.GET("/devices_types/:id", deviceTypeHandler.GetDeviceTypeByID)
+	r.DELETE("/devices_types/:id", deviceTypeHandler.DeleteDeviceType)
 
 	// Periodically check device statuses
 	go func() {
 		log.Println("Starting device status update...")
 		for {
-			handler.Usecase.UpdateDeviceStatus()
+			deviceHandler.Usecase.UpdateDeviceStatus()
 			log.Println("Device status update completed.")
 			time.Sleep(5 * time.Second)
 		}
