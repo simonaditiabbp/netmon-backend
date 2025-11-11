@@ -16,13 +16,13 @@ func NewDeviceRepository(db *gorm.DB) *DeviceRepository {
 
 func (r *DeviceRepository) GetAllDevices() ([]domain.Device, error) {
 	var devices []domain.Device
-	if err := r.DB.Find(&devices).Error; err != nil {
+	if err := r.DB.Order("id DESC").Find(&devices).Error; err != nil {
 		return nil, err
 	}
 	return devices, nil
 }
 
-func (r *DeviceRepository) CreateDevice(device *domain.Device) error {
+func (r *DeviceRepository) InsertDevice(device *domain.Device) error {
 	return r.DB.Create(device).Error
 }
 
@@ -32,4 +32,16 @@ func (r *DeviceRepository) CreateLog(log *domain.Log) error {
 
 func (r *DeviceRepository) UpdateDevice(device *domain.Device) error {
 	return r.DB.Model(&domain.Device{}).Where("id = ?", device.ID).Updates(device).Error
+}
+
+func (r *DeviceRepository) GetDeviceByID(id uint) (*domain.Device, error) {
+	var device domain.Device
+	if err := r.DB.First(&device, id).Error; err != nil {
+		return nil, err
+	}
+	return &device, nil
+}
+
+func (r *DeviceRepository) DeleteDevice(id uint) error {
+	return r.DB.Delete(&domain.Device{}, id).Error
 }

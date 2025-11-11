@@ -7,7 +7,7 @@ type Log struct {
 	DeviceID  uint      `gorm:"not null"`
 	OldStatus string    `gorm:"column:oldstatus;not null"`
 	NewStatus string    `gorm:"column:newstatus;not null"`
-	Timestamp time.Time `gorm:"autoCreateTime"`
+	Logtime   time.Time `gorm:"column:log_time;autoCreateTime"`
 }
 
 // TableName overrides the default table name

@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
@@ -32,29 +31,27 @@ func (u *DeviceUsecase) GetAllDevices() ([]domain.Device, error) {
 	return u.Repo.GetAllDevices()
 }
 
-func (u *DeviceUsecase) CreateDevice(device *domain.Device) error {
-	return u.Repo.CreateDevice(device)
+func (u *DeviceUsecase) InsertDevice(device *domain.Device) error {
+	return u.Repo.InsertDevice(device)
+}
+
+func (u *DeviceUsecase) UpdateDevice(device *domain.Device) error {
+	return u.Repo.UpdateDevice(device)
 }
 
 func (u *DeviceUsecase) UpdateDeviceStatus() {
-	log.Println("Starting UpdateDeviceStatus...")
-	defer log.Println("Finished UpdateDeviceStatus.")
-
 	devices, err := u.Repo.GetAllDevices()
 	if err != nil {
 		log.Printf("Error fetching devices: %v", err)
 		return
 	}
 
-	log.Println("Checking device statuses...")
-
 	for _, device := range devices {
-		fmt.Println("Checking device:", device.Name)
+		// fmt.Println("Checking device:", device.Name)
 		// Check device status using HTTP or ping
 		isOnline := false
 
 		if strings.HasPrefix(device.IP, "http") {
-			log.Printf("Sending HTTP request to URL: %s", device.IP)
 			resp, err := http.Get(device.IP)
 			if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				isOnline = true
@@ -62,7 +59,6 @@ func (u *DeviceUsecase) UpdateDeviceStatus() {
 				log.Printf("HTTP request failed for URL %s: %v", device.IP, err)
 			}
 		} else {
-			log.Printf("Pinging IP: %s", device.IP)
 			cmd := exec.Command("ping", "-n", "1", device.IP)
 			if err := cmd.Run(); err == nil {
 				isOnline = true
@@ -71,20 +67,20 @@ func (u *DeviceUsecase) UpdateDeviceStatus() {
 			}
 		}
 
-		fmt.Println("Device:", device.Name, "isOnline:", isOnline)
+		// fmt.Println("Device:", device.Name, "isOnline:", isOnline)
 
 		// Update status and broadcast changes
 		oldStatus := device.Status
 		device.Status = map[bool]string{true: "online", false: "offline"}[isOnline]
-		fmt.Println("Device:", device.Name, "oldStatus:", oldStatus, "newStatus:", device.Status)
+		// fmt.Println("Device:", device.Name, "oldStatus:", oldStatus, "newStatus:", device.Status)
 		if oldStatus != device.Status {
 			log := domain.Log{
 				DeviceID:  device.ID,
 				OldStatus: oldStatus,
 				NewStatus: device.Status,
-				Timestamp: time.Now(),
+				Logtime:   time.Now(),
 			}
-			fmt.Println("Logging status change: ", log)
+			// fmt.Println("Logging status change: ", log)
 			u.Repo.CreateLog(&log)
 		}
 		device.LastOnline = time.Now()
@@ -159,3 +155,11 @@ func (u *DeviceUsecase) BroadcastDevices() {
 // 	}
 // 	fmt.Println("Broadcast completed.")
 // }
+
+func (u *DeviceUsecase) GetDeviceByID(id uint) (*domain.Device, error) {
+	return u.Repo.GetDeviceByID(id)
+}
+
+func (u *DeviceUsecase) DeleteDevice(id uint) error {
+	return u.Repo.DeleteDevice(id)
+}

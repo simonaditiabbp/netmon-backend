@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,9 +24,25 @@ func main() {
 	// Gin router setup
 	r := gin.Default()
 
+	// Add CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+		c.Next()
+	})
+
 	r.GET("/devices", handler.GetAllDevices)
 	r.GET("/sse", handler.SSE)
-	r.GET("/events", handler.SSE)
+	r.GET("/live", handler.GetAllLiveDevices) // without sse
+	r.POST("/devices", handler.InsertDevice)
+	r.PUT("/devices/:id", handler.UpdateDevice)
+	r.GET("/devices/:id", handler.GetDeviceByID)
+	r.DELETE("/devices/:id", handler.DeleteDevice)
 
 	// Periodically check device statuses
 	go func() {
