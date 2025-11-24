@@ -59,7 +59,7 @@ func (h *DeviceHandler) SSE(c *gin.Context) {
 
 func (h *DeviceHandler) GetAllLiveDevices(c *gin.Context) {
 	// Query devices from the database
-	devices, err := h.Usecase.GetAllDevices()
+	devices, err := h.Usecase.GetAllDevicesWithTypes()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -201,6 +201,30 @@ func (h *DeviceHandler) GetDevicesByTypeMulti(c *gin.Context) {
 		typeIDs = append(typeIDs, uint(id))
 	}
 	devices, err := h.Usecase.GetDevicesByTypeMulti(typeIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, devices)
+}
+
+func (h *DeviceHandler) GetAllDevicesWithTypesAndLocation(c *gin.Context) {
+	devices, err := h.Usecase.GetAllDevicesWithTypesAndLocation()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, devices)
+}
+
+func (h *DeviceHandler) GetDevicesByLocation(c *gin.Context) {
+	locationIDStr := c.Param("location_id")
+	locationID, err := strconv.ParseUint(locationIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid location_id"})
+		return
+	}
+	devices, err := h.Usecase.GetDevicesByLocation(uint(locationID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

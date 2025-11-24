@@ -251,3 +251,41 @@ func (u *DeviceUsecase) GetDevicesByTypeMulti(typeIDs []uint) ([]domain.Device, 
 	}
 	return devices, nil
 }
+
+func (u *DeviceUsecase) GetAllDevicesWithTypesAndLocation() ([]domain.Device, error) {
+	devices, err := u.Repo.GetAllDevices()
+	if err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		types, _ := u.TypeMapRepo.GetDeviceTypes(devices[i].ID)
+		devices[i].Types = types
+		if devices[i].LocationID != 0 {
+			loc, _ := u.Repo.DB.Model(&domain.Location{}).Where("id = ?", devices[i].LocationID).First(&domain.Location{}).Rows()
+			if loc != nil {
+				var location domain.Location
+				devices[i].Location = &location
+			}
+		}
+	}
+	return devices, nil
+}
+
+func (u *DeviceUsecase) GetDevicesByLocation(locationID uint) ([]domain.Device, error) {
+	var devices []domain.Device
+	if err := u.Repo.DB.Where("location_id = ?", locationID).Find(&devices).Error; err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		types, _ := u.TypeMapRepo.GetDeviceTypes(devices[i].ID)
+		devices[i].Types = types
+		if devices[i].LocationID != 0 {
+			loc, _ := u.Repo.DB.Model(&domain.Location{}).Where("id = ?", devices[i].LocationID).First(&domain.Location{}).Rows()
+			if loc != nil {
+				var location domain.Location
+				devices[i].Location = &location
+			}
+		}
+	}
+	return devices, nil
+}

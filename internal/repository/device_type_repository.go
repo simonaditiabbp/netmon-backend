@@ -23,7 +23,7 @@ func (r *DeviceTypeRepository) UpdateDeviceType(dt *domain.DeviceType) error {
 
 func (r *DeviceTypeRepository) GetAllDeviceTypes() ([]domain.DeviceType, error) {
 	var types []domain.DeviceType
-	if err := r.DB.Find(&types).Error; err != nil {
+	if err := r.DB.Order("type_name ASC").Find(&types).Error; err != nil {
 		return nil, err
 	}
 	return types, nil

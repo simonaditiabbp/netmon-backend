@@ -16,4 +16,6 @@ type Device struct {
 	UpdatedBy  string
 	TypeIDs    []uint       `json:"type_ids" gorm:"-"` // for insert/update
 	Types      []DeviceType `json:"types" gorm:"-"`    // for response
+	LocationID uint         `json:"location_id"`
+	Location   *Location    `json:"location" gorm:"-"`
 }

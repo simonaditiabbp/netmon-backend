@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,18 +22,28 @@ func main() {
 	deviceTypeRepo := repository.NewDeviceTypeRepository(database)
 	deviceTypeMapRepo := repository.NewDeviceTypeMapRepository(database)
 
+	locationRepo := repository.NewLocationRepository(database)
+	locationUsecase := usecase.NewLocationUsecase(locationRepo)
+	locationHandler := delivery.NewLocationHandler(locationUsecase)
+
 	deviceUsecase := usecase.NewDeviceUsecase(deviceRepo, deviceTypeMapRepo, deviceTypeRepo)
 	deviceTypeUsecase := usecase.NewDeviceTypeUsecase(deviceTypeRepo)
 
 	deviceHandler := delivery.NewDeviceHandler(deviceUsecase)
 	deviceTypeHandler := delivery.NewDeviceTypeHandler(deviceTypeUsecase)
 
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+
 	// Gin router setup
 	r := gin.Default()
 
 	// Add CORS middleware
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		origin := c.Request.Header.Get("Origin")
+		// cek apakah origin ada dalam string ENV
+		if strings.Contains(allowedOrigins, origin) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
 		if c.Request.Method == "OPTIONS" {
@@ -57,6 +69,15 @@ func main() {
 
 	r.GET("/devices/by-type", deviceHandler.GetDevicesByType)
 	r.GET("/devices/by-types", deviceHandler.GetDevicesByTypeMulti)
+
+	r.POST("/locations", locationHandler.CreateLocation)
+	r.PUT("/locations/:id", locationHandler.UpdateLocation)
+	r.GET("/locations", locationHandler.GetAllLocations)
+	r.GET("/locations/:id", locationHandler.GetLocationByID)
+	r.DELETE("/locations/:id", locationHandler.DeleteLocation)
+
+	r.GET("/devices/full", deviceHandler.GetAllDevicesWithTypesAndLocation)
+	r.GET("/locations/:id/devices", deviceHandler.GetDevicesByLocation)
 
 	// Periodically check device statuses
 	go func() {
